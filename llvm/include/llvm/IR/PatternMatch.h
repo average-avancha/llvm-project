@@ -593,7 +593,19 @@ inline cst_pred_ty<is_zero_int> m_ZeroInt() {
 }
 
 struct is_zero {
+  /// Match if V is a null constant or integer zero, recursively stripping BitCast.
   template <typename ITy> bool match(ITy *V) const {
+    while (true) {
+      if (auto *BC = dyn_cast<BitCastInst>(V))
+        V = BC->getOperand(0);
+      else if (auto *Op = dyn_cast<Operator>(V))
+        if (Op->getOpcode() == Instruction::BitCast)
+          V = Op->getOperand(0);
+        else
+          break;
+      else
+        break;
+    }
     auto *C = dyn_cast<Constant>(V);
     // FIXME: this should be able to do something for scalable vectors
     return C && (C->isNullValue() || cst_pred_ty<is_zero_int>().match(C));
