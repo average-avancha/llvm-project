@@ -494,6 +494,24 @@ TEST_F(PatternMatchTest, Unless) {
   EXPECT_FALSE(m_Unless(m_c_Add(m_Zero(), m_One())).match(X));
 }
 
+TEST_F(PatternMatchTest, ZeroThroughBitcast) {
+  // Test that m_Zero() correctly matches zero values even after bitcast operations,
+  // for both scalar and vector types, 
+  // and through multiple bitcasts.
+  Value *Zero = ConstantInt::get(IRB.getInt32Ty(), 0);
+  Value *ZeroBC = IRB.CreateBitCast(Zero, IRB.getInt32Ty());
+  EXPECT_TRUE(match(ZeroBC, m_Zero()));
+
+  Type *VecTy = FixedVectorType::get(IRB.getInt32Ty(), 4);
+  Value *VecZero = Constant::getNullValue(VecTy);
+  Type *VecTyI8 = FixedVectorType::get(IRB.getInt8Ty(), 16);
+  Value *VecZeroBC = IRB.CreateBitCast(VecZero, VecTyI8);
+  EXPECT_TRUE(match(VecZeroBC, m_Zero()));
+
+  Value *VecZeroBC2 = IRB.CreateBitCast(VecZeroBC, VecTy);
+  EXPECT_TRUE(match(VecZeroBC2, m_Zero()));
+}
+
 TEST_F(PatternMatchTest, BitWise) {
   Value *Or = IRB.CreateOr(IRB.getInt32(1), IRB.getInt32(0));
   Value *Xor = IRB.CreateXor(IRB.getInt32(1), IRB.getInt32(0));
